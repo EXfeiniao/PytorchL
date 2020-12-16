@@ -4,7 +4,7 @@ from torch.autograd import Variable
 import torch.optim as optim
 import torch.nn.functional as F
 
-import torchvision.datasets as dsets
+import torchvision.datasets as dataset
 import torchvision.transforms as transforms
 
 import matplotlib.pyplot as plt
@@ -14,28 +14,28 @@ import numpy as np
 if __name__ == '__main__':
     image_size = 28     # 图像的总尺寸为28*28
     num_classes = 10    # 标签的种类数
-    num_epochs = 10     # 训练的总循环周期
+    num_epochs = 20     # 训练的总循环周期
     batch_size = 64     # 一个批次的大小，64张图片
 
     # 加载MNIST 数据，如果没有就会下载，存在当前路径的/data 子目录下
     # MNIST 数据属于torchvision 包自带的的数据，可以直接调用
     # 调用自己的图像数据时，可以用torchvision.datasets.ImageFolder
     # 或torch.utils.data.TensorDataset 来加载
-    train_dataset = dsets.MNIST(root='./data',  # 文件存放路径
-                                train=True,     # 提取数据集
-                                # 将图像转化为Tensor，在加载数据时，就可以对图像进行预处理
-                                transform=transforms.ToTensor(),
-                                download=True)  # 当找不到文件时，自动下载
+    train_dataset = dataset.MNIST(root='./data',  # 文件存放路径
+                                  train=True,  # 提取数据集
+                                  # 将图像转化为Tensor，在加载数据时，就可以对图像进行预处理
+                                  transform=transforms.ToTensor(),
+                                  download=True)  # 当找不到文件时，自动下载
 
     # 加载测试数据集
-    test_dataset = dsets.MNIST(root='./data',
-                               train=False,
-                               transform=transforms.ToTensor())
+    test_dataset = dataset.MNIST(root='./data',
+                                 train=False,
+                                 transform=transforms.ToTensor())
 
     # 训练数据集的加载器，自动将数据切分成批，顺序随机打乱
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                batch_size=batch_size,
-                                               shuffle=True)
+                                               shuffle=True)    # 随机排列
 
     '''
     将测试数据分成两部分，一部分作为校验数据，一部分作为测试数据
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     '''
 
     # 定义下标数组indices，它是对所有test_dataset 中数据的编码
-    # 然后，定义下标indices_val 表示校验数据集的下标，indices_test表示测试数据的下标
+    # 定义下标indices_val 表示校验数据集的下标，indices_test表示测试数据的下标
     indices = range(len(test_dataset))
     indices_val = indices[:5000]
     indices_test = indices[5000:]
@@ -201,6 +201,8 @@ if __name__ == '__main__':
                     right = rightness(output, target)
                     val_rights.append(right)
 
+                # 分别计算目前已经计算过的测试集以及全部校验集上的模型的表现：分类准确率
+                # train_r 为一个二元组，分别记录经历过的所有训练集中分类正确的数量和该集合中总的样本数
                 # train_r[0]/train_r[1]是训练集的分类精确度，val_r[0]/val_r[1]是校验集的分类精确度
                 train_r = (sum([tup[0] for tup in train_rights]), sum([tup[1] for tup in train_rights]))
                 # val_r 为一个二元组，分别记录校验集中分类正确的数量和该集合中总的样本数
@@ -217,5 +219,12 @@ if __name__ == '__main__':
                 # 将准确率和权重等数值加载到容器中，方便后续处理
                 record.append((100 - 100. * train_r[0] / train_r[1], 100 - 100. * val_r[0] / val_r[1]))
 
+                # weights 记录了训练周期中所有卷积核的演化过程，net.conv1.weight提取出第一层卷积核的权重
+                # clone 是将weight.data 中的数据做一个备份放到列表中
+                # 否则当weight.data 变化时，列表中的每一项数值都会联动
+                # 这里使用clone 这个函数
+                '''
+                clone()函数可以返回一个完全相同的tensor,新的tensor开辟新的内存，但是仍然留在计算图中。
+                '''
                 weights.append([net.conv1.weight.data.clone(), net.conv1.bias.data.clone(),
                                 net.conv2.weight.data.clone(), net.conv2.bias.data.clone()])
