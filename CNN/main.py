@@ -14,7 +14,7 @@ import numpy as np
 if __name__ == '__main__':
     image_size = 28     # 图像的总尺寸为28*28
     num_classes = 10    # 标签的种类数
-    num_epochs = 20     # 训练的总循环周期
+    num_epochs = 10     # 训练的总循环周期
     batch_size = 64     # 一个批次的大小，64张图片
 
     # 加载MNIST 数据，如果没有就会下载，存在当前路径的/data 子目录下
@@ -43,12 +43,16 @@ if __name__ == '__main__':
     '''
 
     # 定义下标数组indices，它是对所有test_dataset 中数据的编码
-    # 定义下标indices_val 表示校验数据集的下标，indices_test表示测试数据的下标
-    indices = range(len(test_dataset))
-    indices_val = indices[:5000]
-    indices_test = indices[5000:]
+    # 定义下标indices_val 表示校验数据集的下标，indices_test 表示测试数据的下标
+    indices = range(len(test_dataset))  # indices，index的复数：索引
+    indices_val = indices[:5000]    # 前5000个data 作为校验数据集
+    indices_test = indices[5000:]   # 5000之后的data 作为测试数据
 
     # 根据下标构造两个数据集的SubsetRandomSampler 采样器，它会对下标进行采样
+    '''
+    会根据后面给的列表从数据集中按照下标取元素
+    torch.utils.data.SubsetRandomSampler(indices)：无放回地按照给定的索引列表采样样本元素。
+    '''
     sampler_val = torch.utils.data.sampler.SubsetRandomSampler(indices_val)
     sampler_test = torch.utils.data.sampler.SubsetRandomSampler(indices_test)
 
@@ -126,6 +130,9 @@ if __name__ == '__main__':
             # x的尺寸：(batch_size, 512)
 
             # 以默认的0.5的概率对这一层进行dropout操作，防止过拟合
+            '''
+            drop操作：可以关闭一部分神经元，避免过拟合，增强模型的泛化能力
+            '''
             x = F.dropout(x, training=self.training)
             x = self.fc2(x)     # 全连接
             # x的尺寸：(batch_size, num_classes)
@@ -154,9 +161,29 @@ if __name__ == '__main__':
     # 运行模型
     net = ConvNet()     # 新建一个卷积神经网络的实例，此时ConvNet的__init__()函数会被自动调用
 
-    criterion = nn.CrossEntropyLoss()   # loss函数的定义，交叉熵
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-    # 定义优化器，普通的随机梯度下降算法
+    criterion = nn.CrossEntropyLoss()   # loss函数的定义，交叉熵 criterion：标准，原则
+    optimizer = optim.RMSprop(net.parameters(), lr=0.001)
+    # 定义优化器，普通的随机梯度下降算法 optimizer：优化器
+    '''
+    原本使用的是SGD
+    SGD：
+        基本策略可以理解为随机梯度下降像是一个盲人下山，不用每走一步计算一次梯度，但是他总能下到山底，
+    只不过过程会显得扭扭曲曲。
+        优点：
+        虽然SGD 需要走很多步的样子，但是对梯度的要求很低（计算梯度快）。而对于引入噪声，
+    大量的理论和实践工作证明，只要噪声不是特别大，SGD 都能很好地收敛。
+        应用大型数据集时，训练速度很快。比如每次从百万数据样本中，取几百个数据点，
+    算一个SGD 梯度，更新一下模型参数。相比于标准梯度下降法的遍历全部样本，每输入一个样本更新一次参数，要快得多。
+        缺点：
+        SGD 在随机选择梯度的同时会引入噪声，使得权值更新的方向不一定正确。
+        此外，SGD 也没能单独克服局部最优解的问题。
+    我使用了别的算法也试了下：Adagrad 在这个模型中表现得不行，速度慢而且效果不好
+                         RMSprop 在这个模型中速度快效果好,
+                         原本epochs 是20，用了这个后就换成了10
+    RMSProp：
+        借鉴了Adagrad 的思想，于取了个加权平均，避免了学习率越来越低的的问题，而且能自适应
+    地调节学习率。
+    '''
 
     record = []     # 记录准确率的数值的容器
     weights = []    # 每若干布就记录一次卷积核
