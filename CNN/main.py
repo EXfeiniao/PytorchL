@@ -14,7 +14,7 @@ import numpy as np
 if __name__ == '__main__':
     image_size = 28     # 图像的总尺寸为28*28
     num_classes = 10    # 标签的种类数
-    num_epochs = 10     # 训练的总循环周期
+    num_epochs = 5    # 训练的总循环周期
     batch_size = 64     # 一个批次的大小，64张图片
 
     # 加载MNIST 数据，如果没有就会下载，存在当前路径的/data 子目录下
@@ -236,8 +236,8 @@ if __name__ == '__main__':
                 val_r = (sum([tup[0] for tup in val_rights]), sum([tup[1] for tup in val_rights]))
 
                 # 打印准确率等数值，其中正确率为本训练周期epoch开始后到目前批的正确率的平均值
-                print('| epoch：{}[{}/{} ({:.0f}%)] | loss: {:.6f} | train acc: {:.2f}% | test acc: {:.2f}%'.format(
-                           epoch, batch_idx * len(data), len(train_loader.dataset),
+                print('| epoch：{} [{}/{} ({:.0f}%)] | loss: {:.6f} | train acc: {:.2f}% | test acc: {:.2f}%'.format(
+                           epoch + 1, batch_idx * len(data), len(train_loader.dataset),
                            100. * batch_idx / len(train_loader), loss.data,
                            100. * train_r[0] / train_r[1],
                            100. * val_r[0] / val_r[1]
@@ -251,7 +251,37 @@ if __name__ == '__main__':
                 # 否则当weight.data 变化时，列表中的每一项数值都会联动
                 # 这里使用clone 这个函数
                 '''
-                clone()函数可以返回一个完全相同的tensor,新的tensor开辟新的内存，但是仍然留在计算图中。
+                clone()函数可以返回一个完全相同的tensor,新的ten
+                32sor开辟新的内存，但是仍然留在计算图中。
                 '''
                 weights.append([net.conv1.weight.data.clone(), net.conv1.bias.data.clone(),
                                 net.conv2.weight.data.clone(), net.conv2.bias.data.clone()])
+    
+    '''
+    # 在测试集上上分批运行，并计算总的正确率
+    net.eval()  # 标志着模型当前为运行阶段
+    vals = []   # 记录准确率所用列表
+
+    # 对测试数据进行循环
+    for data, target in test_loader:
+        # data, target = Variable(data, volatile=True), Variable(target)
+        output = net(data)  # 将特则数据输入网络，得到分类的输出
+        val = rightness(output, target)     # 获得正确样本数以及总样本数
+        vals.append(val)    # 记录结果
+
+        # print(output)
+
+        # 计算准确率
+        rights = (sum([tup[0] for tup in vals]), sum([tup[1] for tup in vals]))
+        right_rate = 1.0 * rights[0] / rights[1]
+        print(right_rate.numpy())
+
+    
+    # 绘制训练过程的误差曲线，校验集和测试集上的错误率
+    plt.figure(figsize=(10, 7))
+    xplot = plt.plot(record)    # record 记载了每一个打印周期记录的训练集和校验集上的准确度
+    plt.xlabel('steps')
+    plt.ylabel('Error rate')
+    # plt.legend([xplot], ['训练集', '校验集'])
+    plt.show()
+    '''
