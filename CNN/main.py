@@ -256,7 +256,7 @@ if __name__ == '__main__':
                 '''
                 weights.append([net.conv1.weight.data.clone(), net.conv1.bias.data.clone(),
                                 net.conv2.weight.data.clone(), net.conv2.bias.data.clone()])
-    
+
     '''
     # 在测试集上上分批运行，并计算总的正确率
     net.eval()  # 标志着模型当前为运行阶段
